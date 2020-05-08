@@ -15,12 +15,12 @@ use Mautic\CampaignBundle\CampaignEvents;
 use Mautic\CampaignBundle\Event as Events;
 use Mautic\CampaignBundle\Event\CampaignExecutionEvent;
 use Mautic\CampaignBundle\Executioner\RealTimeExecutioner;
-use Mautic\CoreBundle\EventListener\CommonSubscriber;
 use Mautic\WebhookBundle\Event\SendWebhookEvent;
 use MauticPlugin\MauticExtendeeWebhookResponseBundle\Form\Type\CampaignEventSendWebhookResponseType;
 use MauticPlugin\MauticExtendeeWebhookResponseBundle\WebhookEvents;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class SendWebhookSubscriber extends CommonSubscriber
+class SendWebhookSubscriber implements EventSubscriberInterface
 {
     /**
      * @var RealTimeExecutioner
@@ -43,9 +43,9 @@ class SendWebhookSubscriber extends CommonSubscriber
     public static function getSubscribedEvents()
     {
         return [
-            CampaignEvents::CAMPAIGN_ON_BUILD           => ['onCampaignBuild', 0],
-            \Mautic\WebhookBundle\WebhookEvents::ON_SEND_WEBHOOK => ['onSendWebhook', 0],
-            WebhookEvents::ON_CAMPAIGN_TRIGGER_DECISION => ['onCampaignTriggerDecision', 0],
+            CampaignEvents::CAMPAIGN_ON_BUILD                    => ['onCampaignBuild', 0],
+            \Mautic\WebhookBundle\WebhookEvents::ON_WEBHOOK_RESPONSE => ['onSendWebhook', 0],
+            WebhookEvents::ON_CAMPAIGN_TRIGGER_DECISION          => ['onCampaignTriggerDecision', 0],
         ];
     }
 
@@ -58,10 +58,10 @@ class SendWebhookSubscriber extends CommonSubscriber
     {
         //Add action to remote url call
         $sendWebhookDecision = [
-            'label'       => 'mautic.plugin.webhook.event.sendwebhook.response',
-            'description' => 'mautic.plugin.webhook.event.sendwebhook_desc.response',
-            'formType'    => CampaignEventSendWebhookResponseType::class,
-            'eventName'   => WebhookEvents::ON_CAMPAIGN_TRIGGER_DECISION,
+            'label'                  => 'mautic.plugin.webhook.event.sendwebhook.response',
+            'description'            => 'mautic.plugin.webhook.event.sendwebhook_desc.response',
+            'formType'               => CampaignEventSendWebhookResponseType::class,
+            'eventName'              => WebhookEvents::ON_CAMPAIGN_TRIGGER_DECISION,
             'connectionRestrictions' => [
                 'source' => [
                     'action' => [
@@ -92,6 +92,9 @@ class SendWebhookSubscriber extends CommonSubscriber
         if (!$event->checkContext('plugin.webhook.response')) {
             return false;
         }
+
+        return $event->setResult(true);
+
         if ($config['match'] === $eventDetails) {
             return $event->setResult(true);
         }
